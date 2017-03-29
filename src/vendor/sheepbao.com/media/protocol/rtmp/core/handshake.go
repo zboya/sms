@@ -8,7 +8,13 @@ import (
 	"fmt"
 	"io"
 
+	"time"
+
 	"sheepbao.com/media/utils/pio"
+)
+
+var (
+	timeout = 3 * time.Second
 )
 
 var (
@@ -96,32 +102,29 @@ func (self *Conn) HandshakeClient() (err error) {
 
 	C0C1C2 := random[:1536*2+1]
 	C0 := C0C1C2[:1]
-	//C1 := C0C1C2[1:1536+1]
 	C0C1 := C0C1C2[:1536+1]
 	C2 := C0C1C2[1536+1:]
 
 	S0S1S2 := random[1536*2+1:]
-	//S0 := S0S1S2[:1]
-	S1 := S0S1S2[1 : 1536+1]
-	//S0S1 := S0S1S2[:1536+1]
-	//S2 := S0S1S2[1536+1:]
 
 	C0[0] = 3
-	//hsCreate01(C0C1, hsClientFullKey)
-
 	// > C0C1
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = self.rw.Write(C0C1); err != nil {
 		return
 	}
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if err = self.rw.Flush(); err != nil {
 		return
 	}
 
 	// < S0S1S2
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = io.ReadFull(self.rw, S0S1S2); err != nil {
 		return
 	}
 
+	S1 := S0S1S2[1 : 1536+1]
 	if ver := pio.U32BE(S1[4:8]); ver != 0 {
 		C2 = S1
 	} else {
@@ -129,10 +132,11 @@ func (self *Conn) HandshakeClient() (err error) {
 	}
 
 	// > C2
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = self.rw.Write(C2); err != nil {
 		return
 	}
-
+	self.Conn.SetDeadline(time.Time{})
 	return
 }
 
@@ -152,9 +156,11 @@ func (self *Conn) HandshakeServer() (err error) {
 	S2 := S0S1S2[1536+1:]
 
 	// < C0C1
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = io.ReadFull(self.rw, C0C1); err != nil {
 		return
 	}
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if C0[0] != 3 {
 		err = fmt.Errorf("rtmp: handshake version=%d invalid", C0[0])
 		return
@@ -182,17 +188,20 @@ func (self *Conn) HandshakeServer() (err error) {
 	}
 
 	// > S0S1S2
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = self.rw.Write(S0S1S2); err != nil {
 		return
 	}
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if err = self.rw.Flush(); err != nil {
 		return
 	}
 
 	// < C2
+	self.Conn.SetDeadline(time.Now().Add(timeout))
 	if _, err = io.ReadFull(self.rw, C2); err != nil {
 		return
 	}
-
+	self.Conn.SetDeadline(time.Time{})
 	return
 }

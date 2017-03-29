@@ -1,6 +1,6 @@
 export GOPATH=`pwd`
 os=$1
-
-GOOS=$os go build -o bin/sms$os -ldflags \
+arch=$2
+GOOS=$os GOARCH=$arch go build -o bin/sms${os}${arch} -ldflags \
 "-X main.buildTime=`date +%Y-%m-%d/%H:%M:%S`" src/main/*.go
 
