@@ -5,10 +5,10 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"sync"
 )
 
 type TSCache struct {
-	// lock   sync.RWMutex
 	entrys map[string]*TSCacheItem
 }
 
@@ -19,7 +19,6 @@ func NewTSCache() *TSCache {
 }
 
 func (self *TSCache) Set(key string, e *TSCacheItem) {
-	// self.lock.Lock()
 	v, ok := self.entrys[key]
 	if !ok {
 		self.entrys[key] = e
@@ -27,13 +26,10 @@ func (self *TSCache) Set(key string, e *TSCacheItem) {
 	if v.ID() != e.ID() {
 		self.entrys[key] = e
 	}
-	// self.lock.Unlock()
 }
 
 func (self *TSCache) Get(key string) *TSCacheItem {
-	// self.lock.Lock()
 	v := self.entrys[key]
-	// self.lock.Unlock()
 	return v
 }
 
@@ -46,11 +42,11 @@ var (
 )
 
 type TSCacheItem struct {
-	id  string
-	num int
-	ll  *list.List
-	// lock sync.RWMutex
-	lm map[string]TSItem
+	id   string
+	num  int
+	lock sync.RWMutex
+	ll   *list.List
+	lm   map[string]TSItem
 }
 
 func NewTSCacheItem(id string) *TSCacheItem {
@@ -66,12 +62,12 @@ func (self *TSCacheItem) ID() string {
 	return self.id
 }
 
+// TODO: found data race, fix it
 func (self *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 	var seq int
 	var getSeq bool
 	var maxDuration int
 	m3u8body := bytes.NewBuffer(nil)
-	// self.lock.Lock()
 	for e := self.ll.Front(); e != nil; e = e.Next() {
 		key := e.Value.(string)
 		v, ok := self.lm[key]
@@ -86,7 +82,6 @@ func (self *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 			fmt.Fprintf(m3u8body, "#EXTINF:%.3f,\n%s\n", float64(v.Duration)/float64(1000), v.Name)
 		}
 	}
-	// self.lock.Unlock()
 	w := bytes.NewBuffer(nil)
 	fmt.Fprintf(w,
 		"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-ALLOW-CACHE:NO\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:%d\n\n",
@@ -96,7 +91,6 @@ func (self *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 }
 
 func (self *TSCacheItem) SetItem(key string, item TSItem) {
-	// self.lock.Lock()
 	if self.ll.Len() == self.num {
 		e := self.ll.Front()
 		self.ll.Remove(e)
@@ -105,17 +99,13 @@ func (self *TSCacheItem) SetItem(key string, item TSItem) {
 	}
 	self.lm[key] = item
 	self.ll.PushBack(key)
-	// self.lock.Unlock()
 }
 
 func (self *TSCacheItem) GetItem(key string) (TSItem, error) {
-	// self.lock.RLock()
 	item, ok := self.lm[key]
 	if !ok {
-		// self.lock.RUnlock()
 		return item, ErrNoKey
 	}
-	// self.lock.RUnlock()
 	return item, nil
 }
 

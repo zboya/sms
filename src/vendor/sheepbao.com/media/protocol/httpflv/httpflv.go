@@ -21,6 +21,16 @@ type Server struct {
 	handler av.Handler
 }
 
+type stream struct {
+	Key string `json:"key"`
+	Id  string `json:"id"`
+}
+
+type streams struct {
+	Publishers []stream `json:"publishers"`
+	Players    []stream `json:"players"`
+}
+
 func NewServer(h av.Handler) *Server {
 	return &Server{
 		handler: h,
@@ -44,29 +54,28 @@ func (s *Server) getStream(w http.ResponseWriter, r *http.Request) {
 	if rtmpStream == nil {
 		return
 	}
-	msg := make(map[string]string)
+	msgs := new(streams)
 	for item := range rtmpStream.GetStreams().IterBuffered() {
 		if s, ok := item.Val.(*rtmp.Stream); ok {
 			if s.GetReader() != nil {
-				msg[item.Key] = s.GetReader().Info().Key
+				msg := stream{item.Key, s.GetReader().Info().UID}
+				msgs.Publishers = append(msgs.Publishers, msg)
 			}
 		}
 	}
-	resp, _ := json.Marshal(msg)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(resp)
-	msg = make(map[string]string)
+
 	for item := range rtmpStream.GetStreams().IterBuffered() {
 		ws := item.Val.(*rtmp.Stream).GetWs()
 		for s := range ws.IterBuffered() {
 			if pw, ok := s.Val.(*rtmp.PackWriterCloser); ok {
 				if pw.GetWriter() != nil {
-					msg[pw.GetWriter().Info().UID] = item.Key
+					msg := stream{item.Key, pw.GetWriter().Info().UID}
+					msgs.Players = append(msgs.Players, msg)
 				}
 			}
 		}
 	}
-	resp, _ = json.Marshal(msg)
+	resp, _ := json.Marshal(msgs)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 

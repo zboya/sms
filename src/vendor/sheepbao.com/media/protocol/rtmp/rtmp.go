@@ -15,11 +15,18 @@ import (
 
 	"errors"
 
+	"flag"
+
 	"sheepbao.com/glog"
 )
 
 const (
 	maxQueueNum = 1024
+)
+
+var (
+	readTimeout  = flag.Int("readTimeout", 10, "read time out")
+	writeTimeout = flag.Int("writeTimeout", 10, "write time out")
 )
 
 type Client struct {
@@ -90,13 +97,11 @@ func (self *Server) Serve(listener net.Listener) (err error) {
 }
 
 func (self *Server) handleConn(conn *core.Conn) error {
-	conn.SetDeadline(time.Now().Add(time.Second * 30))
 	if err := conn.HandshakeServer(); err != nil {
 		conn.Close()
 		glog.Errorln("handleConn HandshakeServer err:", err)
 		return err
 	}
-	conn.SetDeadline(time.Time{})
 	connServer := core.NewConnServer(conn)
 
 	if err := connServer.ReadMsg(); err != nil {
@@ -145,7 +150,7 @@ func NewVirWriter(conn StreamReadWriteCloser) *VirWriter {
 	ret := &VirWriter{
 		Uid:         uid.NEWID(),
 		conn:        conn,
-		RWBaser:     av.NewRWBaser(time.Second * 10),
+		RWBaser:     av.NewRWBaser(time.Second * time.Duration(*writeTimeout)),
 		packetQueue: make(chan av.Packet, maxQueueNum),
 	}
 	go ret.Check()
@@ -282,7 +287,7 @@ func NewVirReader(conn StreamReadWriteCloser) *VirReader {
 	return &VirReader{
 		Uid:     uid.NEWID(),
 		conn:    conn,
-		RWBaser: av.NewRWBaser(time.Second * 10),
+		RWBaser: av.NewRWBaser(time.Second * time.Duration(*writeTimeout)),
 		demuxer: flv.NewDemuxer(),
 	}
 }

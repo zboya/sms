@@ -59,7 +59,6 @@ func (rs *RtmpStream) HandleWriter(w av.WriteCloser) {
 			s = item.(*Stream)
 			s.AddWriter(w)
 		}
-
 	}
 
 }

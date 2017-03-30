@@ -116,8 +116,6 @@ func (self *Server) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		glog.Infof("m3u8: \n%s\n-----------------", string(body))
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Content-Type", "application/x-mpegURL")
@@ -131,7 +129,6 @@ func (self *Server) handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tsCache := conn.GetCacheInc()
-		glog.Infoln("ts path: ", r.URL.Path)
 		item, err := tsCache.GetItem(r.URL.Path)
 		if err != nil {
 			glog.Errorln("GetItem error: ", err)
@@ -316,7 +313,6 @@ func (self *Source) Close(err error) {
 }
 
 func (self *Source) cut() {
-	// glog.Infoln("hls source cut start")
 	newf := true
 	if self.btswriter == nil {
 		self.btswriter = bytes.NewBuffer(nil)
@@ -337,18 +333,15 @@ func (self *Source) cut() {
 		self.btswriter.Write(self.muxer.PAT())
 		self.btswriter.Write(self.muxer.PMT(av.SOUND_AAC, true))
 	}
-	// glog.Infoln("hls cut done")
 }
 
 func (self *Source) parse(p *av.Packet) (int32, bool, error) {
-	// glog.Infoln("hls source parse start")
 	var compositionTime int32
 	var ah av.AudioPacketHeader
 	var vh av.VideoPacketHeader
 	if p.IsVideo {
 		vh = p.Header.(av.VideoPacketHeader)
 		if vh.CodecID() != av.VIDEO_H264 {
-			glog.Infof("codec id: %d", vh.CodecID())
 			return compositionTime, false, ErrNoSupportVideoCodec
 		}
 		compositionTime = vh.CompositionTime()
