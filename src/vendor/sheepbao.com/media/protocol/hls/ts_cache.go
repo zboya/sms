@@ -68,6 +68,9 @@ func (self *TSCacheItem) GenM3U8PlayList() ([]byte, error) {
 	var getSeq bool
 	var maxDuration int
 	m3u8body := bytes.NewBuffer(nil)
+	if self == nil || self.ll == nil {
+		return nil, errors.New("closed")
+	}
 	for e := self.ll.Front(); e != nil; e = e.Next() {
 		key := e.Value.(string)
 		v, ok := self.lm[key]
