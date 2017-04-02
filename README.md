@@ -7,6 +7,7 @@ sheepbao media server and super media server whith golang.
 * support rtmp 
 * support http-flv
 * support hls
+* support push or pull media streams by http request
 
 ## Build
 
@@ -16,6 +17,10 @@ cd sms
 ./build.sh  
 ```
 
+## Cross compile
+```
+./build.sh linux arm // or ./build.sh os arch
+```
 ## Run
 ./bin/sms
 

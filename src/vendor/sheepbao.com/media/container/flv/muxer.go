@@ -16,6 +16,10 @@ import (
 )
 
 var (
+	flvHeader = []byte{0x46, 0x4c, 0x56, 0x01, 0x05, 0x00, 0x00, 0x00, 0x09}
+)
+
+var (
 	flvFile = flag.String("filFile", "./out.flv", "output flv file name")
 )
 
@@ -67,7 +71,7 @@ func NewFLVWriter(app, title, url string, ctx *os.File) *FLVWriter {
 		buf:     make([]byte, headerLen),
 	}
 
-	ret.ctx.Write([]byte{0x46, 0x4c, 0x56, 0x01, 0x05, 0x00, 0x00, 0x00, 0x09})
+	ret.ctx.Write(flvHeader)
 	pio.PutI32BE(ret.buf[:4], 0)
 	ret.ctx.Write(ret.buf[:4])
 

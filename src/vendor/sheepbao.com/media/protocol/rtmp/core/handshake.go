@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	timeout = 3 * time.Second
+	timeout = 5 * time.Second
 )
 
 var (

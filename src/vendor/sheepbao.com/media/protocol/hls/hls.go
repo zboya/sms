@@ -304,10 +304,18 @@ func (self *Source) Info() (ret av.Info) {
 	return self.info
 }
 
+func (self *Source) cleanup() {
+	close(self.packetQueue)
+	self.bwriter = nil
+	self.btswriter = nil
+	self.cache = nil
+	self.tsCache = nil
+}
+
 func (self *Source) Close(err error) {
 	glog.Infoln("hls source closed: ", self.info)
 	if !self.closed {
-		close(self.packetQueue)
+		self.cleanup()
 	}
 	self.closed = true
 }
