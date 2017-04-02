@@ -29,12 +29,11 @@ func NewRtmpStream() *RtmpStream {
 func (rs *RtmpStream) HandleReader(r av.ReadCloser) {
 	info := r.Info()
 	var s *Stream
-	ok := rs.streams.Has(info.Key)
+	item, ok := rs.streams.Get(info.Key)
 	if !ok {
 		s = NewStream()
 		rs.streams.Set(info.Key, s)
 	} else {
-		item, _ := rs.streams.Get(info.Key)
 		s = item.(*Stream)
 		if s != nil {
 			s.TransStop()

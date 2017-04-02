@@ -245,10 +245,14 @@ func (self *Source) DropPacket(pktQue chan av.Packet, info av.Info) {
 
 func (self *Source) Write(p av.Packet) error {
 	self.SetPreTime()
-	if len(self.packetQueue) >= maxQueueNum-24 {
-		self.DropPacket(self.packetQueue, self.info)
+	if !self.closed {
+		if len(self.packetQueue) >= maxQueueNum-24 {
+			self.DropPacket(self.packetQueue, self.info)
+		} else {
+			self.packetQueue <- p
+		}
 	} else {
-		self.packetQueue <- p
+		return errors.New("closed")
 	}
 	return nil
 }
