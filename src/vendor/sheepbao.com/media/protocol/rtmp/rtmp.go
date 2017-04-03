@@ -66,13 +66,13 @@ func (self *Client) GetHandle() av.Handler {
 
 type Server struct {
 	handler av.Handler
-	getter  av.GetWriter
+	getters []av.GetWriter
 }
 
-func NewRtmpServer(h av.Handler, getter av.GetWriter) *Server {
+func NewRtmpServer(h av.Handler, getters []av.GetWriter) *Server {
 	return &Server{
 		handler: h,
-		getter:  getter,
+		getters: getters,
 	}
 }
 
@@ -114,9 +114,13 @@ func (self *Server) handleConn(conn *core.Conn) error {
 		self.handler.HandleReader(reader)
 		glog.Infof("new publisher: %+v", reader.Info())
 
-		if self.getter != nil {
-			writer := self.getter.GetWriter(reader.Info())
-			self.handler.HandleWriter(writer)
+		if len(self.getters) > 0 {
+			for _, getter := range self.getters {
+				writer := getter.GetWriter(reader.Info())
+				if writer != nil {
+					self.handler.HandleWriter(writer)
+				}
+			}
 		}
 	} else {
 		writer := NewVirWriter(connServer)
@@ -177,29 +181,30 @@ func (self *VirWriter) DropPacket(pktQue chan av.Packet, info av.Info) {
 	glog.Errorf("[%v] packet queue max!!!", info)
 	for i := 0; i < maxQueueNum-84; i++ {
 		tmpPkt, ok := <-pktQue
-		// try to don't drop audio
-		if ok && tmpPkt.IsAudio {
-			if len(pktQue) > maxQueueNum-2 {
-				glog.Infoln("drop audio pkt")
-				<-pktQue
-			} else {
-				pktQue <- tmpPkt
+		if ok {
+			// try to don't drop audio
+			if tmpPkt.IsAudio {
+				if len(pktQue) > maxQueueNum-2 {
+					glog.Infoln("drop audio pkt")
+					<-pktQue
+				} else {
+					pktQue <- tmpPkt
+				}
+
 			}
 
+			if tmpPkt.IsVideo {
+				videoPkt, ok := tmpPkt.Header.(av.VideoPacketHeader)
+				// dont't drop sps config and dont't drop key frame
+				if ok && (videoPkt.IsSeq() || videoPkt.IsKeyFrame()) {
+					pktQue <- tmpPkt
+				}
+				if len(pktQue) > maxQueueNum-10 {
+					glog.Infoln("drop video pkt")
+					<-pktQue
+				}
+			}
 		}
-
-		if ok && tmpPkt.IsVideo {
-			videoPkt, ok := tmpPkt.Header.(av.VideoPacketHeader)
-			// dont't drop sps config and dont't drop key frame
-			if ok && (videoPkt.IsSeq() || videoPkt.IsKeyFrame()) {
-				pktQue <- tmpPkt
-			}
-			if len(pktQue) > maxQueueNum-10 {
-				glog.Infoln("drop video pkt")
-				<-pktQue
-			}
-		}
-
 	}
 	glog.Infoln("packet queue len: ", len(pktQue))
 }

@@ -4,8 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"flag"
-
 	"os"
 
 	"sheepbao.com/glog"
@@ -19,31 +17,31 @@ var (
 	flvHeader = []byte{0x46, 0x4c, 0x56, 0x01, 0x05, 0x00, 0x00, 0x00, 0x09}
 )
 
-var (
-	flvFile = flag.String("filFile", "./out.flv", "output flv file name")
-)
+type FlvDvr struct{}
 
-func NewFlv(handler av.Handler, info av.Info) {
-	patths := strings.SplitN(info.Key, "/", 2)
-
-	if len(patths) != 2 {
+func (f *FlvDvr) GetWriter(info av.Info) av.WriteCloser {
+	paths := strings.SplitN(info.Key, "/", 2)
+	if len(paths) != 2 {
 		glog.Errorln("invalid info")
-		return
+		return nil
 	}
 
-	w, err := os.OpenFile(*flvFile, os.O_CREATE|os.O_RDWR, 0755)
+	err := os.MkdirAll(paths[0], 0755)
+	if err != nil {
+		glog.Errorln("mkdir error:", err)
+		return nil
+	}
+
+	w, err := os.OpenFile(info.Key+".flv", os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
 		glog.Errorln("open file error: ", err)
+		return nil
 	}
 
-	writer := NewFLVWriter(patths[0], patths[1], info.URL, w)
-
-	handler.HandleWriter(writer)
-
-	writer.Wait()
-	// close flv file
-	glog.Infoln("close flv file")
-	writer.ctx.Close()
+	info.UID = uid.NEWID()
+	glog.Infoln("new flv dvr: ", info)
+	writer := NewFLVWriter(paths[0], paths[1], info.URL, w)
+	return writer
 }
 
 const (
@@ -55,7 +53,7 @@ type FLVWriter struct {
 	av.RWBaser
 	app, title, url string
 	buf             []byte
-	closed          chan struct{}
+	closed          bool
 	ctx             *os.File
 }
 
@@ -67,7 +65,6 @@ func NewFLVWriter(app, title, url string, ctx *os.File) *FLVWriter {
 		url:     url,
 		ctx:     ctx,
 		RWBaser: av.NewRWBaser(time.Second * 10),
-		closed:  make(chan struct{}),
 		buf:     make([]byte, headerLen),
 	}
 
@@ -124,21 +121,15 @@ func (self *FLVWriter) Write(p av.Packet) error {
 	return nil
 }
 
-func (self *FLVWriter) Wait() {
-	select {
-	case <-self.closed:
-		return
-	}
-}
-
 func (self *FLVWriter) Close(error) {
+	glog.Infoln("flv dvr closed")
 	self.ctx.Close()
-	close(self.closed)
 }
 
 func (self *FLVWriter) Info() (ret av.Info) {
 	ret.UID = self.Uid
 	ret.URL = self.url
 	ret.Key = self.app + "/" + self.title
+	ret.Inter = true
 	return
 }

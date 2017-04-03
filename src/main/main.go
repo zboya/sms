@@ -15,6 +15,8 @@ import (
 	_ "net/http/pprof"
 
 	"sheepbao.com/glog"
+	"sheepbao.com/media/av"
+	"sheepbao.com/media/container/flv"
 	"sheepbao.com/media/protocol/hls"
 	"sheepbao.com/media/protocol/httpflv"
 	"sheepbao.com/media/protocol/httpopera"
@@ -33,6 +35,11 @@ var (
 	flvAddr   = flag.String("flvAddr", ":8081", "the http-flv server address to bind.")
 	hlsAddr   = flag.String("hlsAddr", ":8080", "the hls server address to bind.")
 	operaAddr = flag.String("operaAddr", "", "the http operation or config address to bind: 8082.")
+	flvDvr    = flag.Bool("flvDvr", false, "enable flv dvr")
+)
+
+var (
+	Getters []av.GetWriter
 )
 
 func BuildTime() string {
@@ -64,9 +71,11 @@ func main() {
 
 	stream := rtmp.NewRtmpStream()
 	// hls
-	h := startHls()
+	startHls()
+	// flv dvr
+	startFlvDvr()
 	// rtmp
-	startRtmp(stream, h)
+	startRtmp(stream, Getters)
 	// http-flv
 	startHTTPFlv(stream)
 	// http-opera
@@ -94,16 +103,17 @@ func startHls() *hls.Server {
 		}()
 		hlsServer.Serve(hlsListen)
 	}()
+	Getters = append(Getters, hlsServer)
 	return hlsServer
 }
 
-func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
+func startRtmp(stream *rtmp.RtmpStream, getters []av.GetWriter) {
 	rtmplisten, err := net.Listen("tcp", *rtmpAddr)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	rtmpServer := rtmp.NewRtmpServer(stream, hlsServer)
+	rtmpServer := rtmp.NewRtmpServer(stream, getters)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -146,6 +156,14 @@ func startHTTPOpera(stream *rtmp.RtmpStream) {
 			}()
 			opServer.Serve(opListen)
 		}()
+	}
+}
+
+func startFlvDvr() {
+	if *flvDvr {
+		fd := new(flv.FlvDvr)
+		glog.Infoln("enable flv dvr")
+		Getters = append(Getters, fd)
 	}
 }
 

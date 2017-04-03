@@ -156,25 +156,31 @@ func (self *FLVWriter) DropPacket(pktQue chan av.Packet, info av.Info) {
 	glog.Errorf("[%v] packet queue max!!!", info)
 	for i := 0; i < maxQueueNum-84; i++ {
 		tmpPkt, ok := <-pktQue
-		if ok && tmpPkt.IsVideo {
-			videoPkt, ok := tmpPkt.Header.(av.VideoPacketHeader)
-			// dont't drop sps config and dont't drop key frame
-			if ok && (videoPkt.IsSeq() || videoPkt.IsKeyFrame()) {
-				glog.Infoln("insert keyframe to queue")
-				pktQue <- tmpPkt
+		if ok {
+			// try to don't drop audio
+			if tmpPkt.IsAudio {
+				glog.Infoln("insert audio to queue")
+				if len(pktQue) > maxQueueNum-2 {
+					<-pktQue
+				} else {
+					pktQue <- tmpPkt
+				}
 			}
 
-			if len(pktQue) > maxQueueNum-10 {
-				<-pktQue
+			if tmpPkt.IsVideo {
+				videoPkt, _ := tmpPkt.Header.(av.VideoPacketHeader)
+				if len(pktQue) > maxQueueNum-10 {
+					<-pktQue
+				}
+				// dont't drop sps config and dont't drop key frame
+				if videoPkt.IsSeq() || videoPkt.IsKeyFrame() {
+					glog.Infoln("insert keyframe to queue")
+					pktQue <- tmpPkt
+				}
 			}
-			// drop other packet
-			<-pktQue
+
 		}
-		// try to don't drop audio
-		if ok && tmpPkt.IsAudio {
-			glog.Infoln("insert audio to queue")
-			pktQue <- tmpPkt
-		}
+
 	}
 	glog.Infoln("packet queue len: ", len(pktQue))
 }

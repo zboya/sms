@@ -17,6 +17,7 @@ import (
 	"sheepbao.com/media/container/ts"
 	"sheepbao.com/media/parser"
 	"sheepbao.com/media/utils/cmap"
+	"sheepbao.com/media/utils/uid"
 )
 
 const (
@@ -63,7 +64,8 @@ func (self *Server) GetWriter(info av.Info) av.WriteCloser {
 	var s *Source
 	ok := self.conns.Has(info.Key)
 	if !ok {
-		glog.Infoln("new hls source")
+		info.UID = uid.NEWID()
+		glog.Infoln("new hls source: ", info)
 		s = NewSource(info)
 		self.conns.Set(info.Key, s)
 	} else {
@@ -102,9 +104,15 @@ func (self *Server) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	switch path.Ext(r.URL.Path) {
 	case ".m3u8":
-		key, _ := self.parseM3u8(r.URL.Path)
+		key, err := self.parseM3u8(r.URL.Path)
+		if err != nil {
+			glog.Errorln("parse url error: ", key)
+			http.Error(w, ErrNoPublisher.Error(), http.StatusForbidden)
+			return
+		}
 		conn := self.getConn(key)
 		if conn == nil {
+			glog.Errorln("can't get conn: ", key)
 			http.Error(w, ErrNoPublisher.Error(), http.StatusForbidden)
 			return
 		}
@@ -144,7 +152,12 @@ func (self *Server) handle(w http.ResponseWriter, r *http.Request) {
 
 func (self *Server) parseM3u8(pathstr string) (key string, err error) {
 	pathstr = strings.TrimLeft(pathstr, "/")
-	key = strings.TrimRight(pathstr, path.Ext(pathstr))
+	paths := strings.SplitN(pathstr, ".", 2)
+	key = paths[0]
+	if paths[1] != "m3u8" {
+		err = errors.New("wrong url")
+		return
+	}
 	return
 }
 
