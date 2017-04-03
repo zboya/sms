@@ -8,6 +8,7 @@ sheepbao media server and super media server whith golang.
 * support http-flv
 * support hls
 * support push or pull media streams by http request
+* support flv dvr (save rtmp stream to flv file)
 
 ## Build
 
