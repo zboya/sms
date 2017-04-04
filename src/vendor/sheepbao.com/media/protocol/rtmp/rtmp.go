@@ -190,7 +190,6 @@ func (self *VirWriter) DropPacket(pktQue chan av.Packet, info av.Info) {
 				} else {
 					pktQue <- tmpPkt
 				}
-
 			}
 
 			if tmpPkt.IsVideo {
@@ -261,6 +260,7 @@ func (self *VirWriter) SendPacket() error {
 
 func (self *VirWriter) Info() (ret av.Info) {
 	ret.UID = self.Uid
+	ret.Type = "player"
 	_, _, URL := self.conn.GetInfo()
 	ret.URL = URL
 	_url, err := url.Parse(URL)
@@ -329,6 +329,7 @@ func (self *VirReader) Read(p *av.Packet) (err error) {
 
 func (self *VirReader) Info() (ret av.Info) {
 	ret.UID = self.Uid
+	ret.Type = "publisher"
 	_, _, URL := self.conn.GetInfo()
 	ret.URL = URL
 	_url, err := url.Parse(URL)

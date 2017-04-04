@@ -146,7 +146,7 @@ func (s *Stream) AddWriter(w av.WriteCloser) {
 func (s *Stream) TransStart() {
 	defer func() {
 		if s.r != nil {
-			glog.Infof("[%v] publisher closed", s.r.Info())
+			glog.Infof("[%v] Transport stop", s.r.Info())
 		}
 		// debug mode don't use it
 		// 	if r := recover(); r != nil {
@@ -215,7 +215,6 @@ func (s *Stream) CheckAlive() (n int) {
 			}
 			n++
 		}
-
 	}
 	return
 }
@@ -230,6 +229,5 @@ func (s *Stream) closeInter() {
 				s.ws.Remove(item.Key)
 			}
 		}
-
 	}
 }

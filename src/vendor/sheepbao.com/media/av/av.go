@@ -123,6 +123,7 @@ type CalcTime interface {
 }
 
 type Info struct {
+	Type  string
 	Key   string
 	URL   string
 	UID   string
@@ -134,8 +135,8 @@ func (self Info) IsInterval() bool {
 }
 
 func (i Info) String() string {
-	return fmt.Sprintf("<key: %s, URL: %s, UID: %s, Inter: %v>",
-		i.Key, i.URL, i.UID, i.Inter)
+	return fmt.Sprintf("<Type: %s, key: %s, URL: %s, UID: %s, Inter: %v>",
+		i.Type, i.Key, i.URL, i.UID, i.Inter)
 }
 
 type ReadCloser interface {

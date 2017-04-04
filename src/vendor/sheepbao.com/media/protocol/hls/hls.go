@@ -318,7 +318,9 @@ func (self *Source) SendPacket() error {
 }
 
 func (self *Source) Info() (ret av.Info) {
-	return self.info
+	ret = self.info
+	ret.Type = "hls"
+	return
 }
 
 func (self *Source) cleanup() {

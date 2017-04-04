@@ -272,6 +272,7 @@ func (self *FLVWriter) Close(error) {
 
 func (self *FLVWriter) Info() (ret av.Info) {
 	ret.UID = self.Uid
+	ret.Type = "http-flv"
 	ret.URL = self.url
 	ret.Key = self.app + "/" + self.title
 	ret.Inter = true

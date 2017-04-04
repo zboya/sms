@@ -6,6 +6,8 @@ import (
 
 	"os"
 
+	"fmt"
+
 	"sheepbao.com/glog"
 	"sheepbao.com/media/av"
 	"sheepbao.com/media/protocol/amf"
@@ -32,7 +34,9 @@ func (f *FlvDvr) GetWriter(info av.Info) av.WriteCloser {
 		return nil
 	}
 
-	w, err := os.OpenFile(info.Key+".flv", os.O_CREATE|os.O_RDWR, 0755)
+	fileName := fmt.Sprintf("%s_%d.%s", info.Key, time.Now().Unix(), "flv")
+	glog.Infoln("flv dvr save stream to: ", fileName)
+	w, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
 		glog.Errorln("open file error: ", err)
 		return nil
@@ -128,6 +132,7 @@ func (self *FLVWriter) Close(error) {
 
 func (self *FLVWriter) Info() (ret av.Info) {
 	ret.UID = self.Uid
+	ret.Type = "flv-dvr"
 	ret.URL = self.url
 	ret.Key = self.app + "/" + self.title
 	ret.Inter = true
