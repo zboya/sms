@@ -65,6 +65,7 @@ func (self *Server) GetWriter(info av.Info) av.WriteCloser {
 	ok := self.conns.Has(info.Key)
 	if !ok {
 		info.UID = uid.NEWID()
+		info.Inter = false
 		glog.Infoln("new hls source: ", info)
 		s = NewSource(info)
 		self.conns.Set(info.Key, s)
@@ -200,7 +201,6 @@ type Source struct {
 }
 
 func NewSource(info av.Info) *Source {
-	info.Inter = true
 	s := &Source{
 		info:        info,
 		align:       &align{},

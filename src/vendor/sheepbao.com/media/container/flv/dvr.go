@@ -42,9 +42,8 @@ func (f *FlvDvr) GetWriter(info av.Info) av.WriteCloser {
 		return nil
 	}
 
-	info.UID = uid.NEWID()
-	glog.Infoln("new flv dvr: ", info)
 	writer := NewFLVWriter(paths[0], paths[1], info.URL, w)
+	glog.Infoln("new flv dvr: ", writer.Info())
 	return writer
 }
 
@@ -135,6 +134,5 @@ func (self *FLVWriter) Info() (ret av.Info) {
 	ret.Type = "flv-dvr"
 	ret.URL = self.url
 	ret.Key = self.app + "/" + self.title
-	ret.Inter = true
 	return
 }
