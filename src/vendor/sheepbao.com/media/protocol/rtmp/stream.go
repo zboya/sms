@@ -76,8 +76,10 @@ func (rs *RtmpStream) CheckAlive() {
 		for item := range rs.streams.IterBuffered() {
 			v := item.Val.(*Stream)
 			if v.CheckAlive() == 0 {
-				glog.Infof("check alive and remove: %v", v.r.Info())
 				rs.streams.Remove(item.Key)
+				if v.r != nil {
+					glog.Infof("check alive and remove: %v", v.r.Info())
+				}
 			}
 		}
 	}
@@ -143,23 +145,27 @@ func (s *Stream) AddWriter(w av.WriteCloser) {
 
 func (s *Stream) TransStart() {
 	// debug mode don't use it
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		glog.Errorln("rtmp TransStart panic: ", r)
-	// 	}
-	// }()
+	defer func() {
+		if s.r != nil {
+			glog.Infof("[%v] publisher closed", s.r.Info())
+		}
+		// 	if r := recover(); r != nil {
+		// 		glog.Errorln("rtmp TransStart panic: ", r)
+		// 	}
+	}()
 
 	s.isStart = true
 	var p av.Packet
 	for {
 		if !s.isStart {
+			s.isStart = false
 			s.closeInter()
 			return
 		}
 		err := s.r.Read(&p)
 		if err != nil {
-			s.closeInter()
 			s.isStart = false
+			s.closeInter()
 			return
 		}
 		s.cache.Write(p)
@@ -214,9 +220,6 @@ func (s *Stream) CheckAlive() (n int) {
 }
 
 func (s *Stream) closeInter() {
-	if s.r != nil {
-		glog.Infof("[%v] publisher closed", s.r.Info())
-	}
 	for item := range s.ws.IterBuffered() {
 		v := item.Val.(*PackWriterCloser)
 		if v.w != nil {

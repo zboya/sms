@@ -162,7 +162,6 @@ func startHTTPOpera(stream *rtmp.RtmpStream) {
 func startFlvDvr() {
 	if *flvDvr {
 		fd := new(flv.FlvDvr)
-		glog.Infoln("enable flv dvr")
 		Getters = append(Getters, fd)
 	}
 }
@@ -171,7 +170,7 @@ func startPprof() {
 	if *prof != "" {
 		go func() {
 			if err := http.ListenAndServe(*prof, nil); err != nil {
-				glog.Fatal("enanle pprog failed: ", err)
+				glog.Fatal("enable pprof failed: ", err)
 			}
 		}()
 	}
@@ -188,6 +187,9 @@ func mylog() {
 	}
 	if *prof != "" {
 		glog.Printf("SMS Start, Pprof Server Listen On %s\n", *prof)
+	}
+	if *flvDvr {
+		glog.Printf("SMS Start, Flv Dvr Save On [%s]", "app/streamName.flv")
 	}
 	SavePid()
 }
