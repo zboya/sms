@@ -144,11 +144,11 @@ func (s *Stream) AddWriter(w av.WriteCloser) {
 }
 
 func (s *Stream) TransStart() {
-	// debug mode don't use it
 	defer func() {
 		if s.r != nil {
 			glog.Infof("[%v] publisher closed", s.r.Info())
 		}
+		// debug mode don't use it
 		// 	if r := recover(); r != nil {
 		// 		glog.Errorln("rtmp TransStart panic: ", r)
 		// 	}
@@ -207,7 +207,8 @@ func (s *Stream) CheckAlive() (n int) {
 	for item := range s.ws.IterBuffered() {
 		v := item.Val.(*PackWriterCloser)
 		if v.w != nil {
-			if !v.w.Alive() && s.isStart {
+			if !v.w.Alive() {
+				glog.Infof("[%v] player closed and remove\n", v.w.Info())
 				s.ws.Remove(item.Key)
 				v.w.Close(errors.New("write timeout"))
 				continue
@@ -225,8 +226,8 @@ func (s *Stream) closeInter() {
 		if v.w != nil {
 			if v.w.Info().IsInterval() {
 				v.w.Close(errors.New("closed"))
-				s.ws.Remove(item.Key)
 				glog.Infof("[%v] player closed and remove\n", v.w.Info())
+				s.ws.Remove(item.Key)
 			}
 		}
 

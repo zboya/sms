@@ -161,7 +161,7 @@ func NewVirWriter(conn StreamReadWriteCloser) *VirWriter {
 	go func() {
 		err := ret.SendPacket()
 		if err != nil {
-			glog.Errorln(err)
+			glog.Errorln("send packet error: ", err)
 		}
 	}()
 	return ret
@@ -268,7 +268,6 @@ func (self *VirWriter) Info() (ret av.Info) {
 		glog.Errorln(err)
 	}
 	ret.Key = strings.TrimLeft(_url.Path, "/")
-	ret.Inter = true
 	return
 }
 
