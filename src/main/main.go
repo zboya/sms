@@ -55,10 +55,12 @@ func init() {
 }
 
 func catchSignal() {
+	// windows unsupport syscall.SIGSTOP
 	sig := make(chan os.Signal)
-	signal.Notify(sig, syscall.SIGSTOP, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGTERM)
 	<-sig
 	glog.Println("recieved signal!")
+	// select {}
 }
 
 func main() {

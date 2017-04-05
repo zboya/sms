@@ -62,15 +62,15 @@ func (self *Server) Serve(l net.Listener) error {
 
 func (self *Server) GetWriter(info av.Info) av.WriteCloser {
 	var s *Source
-	ok := self.conns.Has(info.Key)
+	v, ok := self.conns.Get(info.Key)
 	if !ok {
 		info.UID = uid.NEWID()
 		info.Inter = false
+		info.Type = "hls"
 		glog.Infoln("new hls source: ", info)
 		s = NewSource(info)
 		self.conns.Set(info.Key, s)
 	} else {
-		v, _ := self.conns.Get(info.Key)
 		s = v.(*Source)
 	}
 	return s
@@ -319,7 +319,6 @@ func (self *Source) SendPacket() error {
 
 func (self *Source) Info() (ret av.Info) {
 	ret = self.info
-	ret.Type = "hls"
 	return
 }
 
@@ -332,7 +331,7 @@ func (self *Source) cleanup() {
 }
 
 func (self *Source) Close(err error) {
-	glog.Infoln("hls source closed: ", self.info)
+	glog.Infoln("hls source closed: ", self.Info())
 	if !self.closed {
 		self.cleanup()
 	}
